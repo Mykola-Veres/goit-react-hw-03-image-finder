@@ -1,83 +1,91 @@
 import { Component } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { ArticleConteiner } from './App.styled';
-import ContactForm from '../ContactForm';
-import Filter from '../ContactsFilter';
-import ContactList from '../ContactList';
+import Searchbar from '../Searchbar';
+import ImagesAPI from '../../services/ImagesAPI';
+import ImageGallery from '../ImageGallery';
+import ButtonLoad from '../ButtonLoad';
+import Loader from '../Loader';
+import Modal from '../Modal';
 
 class App extends Component {
   state = {
-    contacts: [
-      // { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      // { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      // { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      // { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
+    images: null,
+    page: 1,
+    query: '',
+    error: '',
+    status: 'idle',
+    activeImge: null,
+    showModal: false,
   };
-
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const parseContacts = JSON.parse(contacts);
-    if (parseContacts) {
-      this.setState({ contacts: parseContacts });
-    }
-  }
 
   componentDidUpdate(prevProps, prevState) {
-    const { contacts } = this.state;
-    if (prevState.contacts !== contacts) {
-      localStorage.setItem('contacts', JSON.stringify(contacts));
+    const { query, page } = this.state;
+    if (prevState.query !== query) {
+      this.setState({ page: 1, status: 'pending' });
+      ImagesAPI.fetchImages(query, page)
+        .then(images => {
+          if (images.hits.length === 0) {
+            this.notify();
+          }
+          this.setState({ images, status: 'resolved' });
+        })
+        .catch(error => {
+          this.setState({ error, status: 'rejected' });
+        });
+    }
+    if (prevState.page !== page && page > 1) {
+      this.setState({ status: 'pending' });
+      ImagesAPI.fetchImages(query, page).then(images => {
+        this.setState({ images, status: 'resolved' });
+      });
     }
   }
 
-  handlerSubmitUserForm = contact => {
-    this.state.contacts.some(
-      contactItem =>
-        contactItem.name.toLocaleLowerCase() ===
-        contact.name.toLocaleLowerCase(),
-    )
-      ? alert(`${contact.name} is already in contacts`)
-      : this.setState(({ contacts }) => ({
-          contacts: [contact, ...contacts],
-        }));
-    this.resetFilter();
+  handlerSubmitUserQuery = query => {
+    this.setState({ query });
   };
 
-  handlerFilterName = e => {
-    this.setState({
-      filter: e.target.value,
-    });
+  handlerClickLoadMore = () => {
+    this.setState(prevState => ({ page: prevState.page + 1 }));
   };
 
-  filterVisibleContacts = () =>
-    this.state.contacts.filter(contact =>
-      contact.name.toLowerCase().includes(this.state.filter.toLowerCase()),
+  notify = () =>
+    toast.error(
+      `There are no matching images for this request: ${this.state.query} !`,
     );
 
-  handlerDeleteContact = name => {
-    this.setState(({ contacts }) => ({
-      contacts: contacts.filter(contact => contact.name !== name),
-    }));
+  handleronClickImage = id => {
+    this.setState({
+      activeImge: this.state.images.hits.find(image => id === image.id),
+    });
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
   };
 
-  resetFilter = () => {
-    this.setState({ filter: '' });
+  toggleModal = () => {
+    this.setState(({ showModal }) => ({ showModal: !showModal }));
   };
 
   render() {
-    const visibleContacts = this.filterVisibleContacts();
-    const { filter } = this.state;
+    const { images, status, error, activeImge, showModal } = this.state;
 
     return (
       <ArticleConteiner>
-        <h1>Phonebook</h1>
-        <ContactForm onSubmit={this.handlerSubmitUserForm} />
-        <h2>Contacts</h2>
-        <Filter value={filter} onChange={this.handlerFilterName} />
-        <ContactList
-          contacts={visibleContacts}
-          onDeleteContact={this.handlerDeleteContact}
-        />
+        <ToastContainer position="top-center" autoClose={2000} />
+        <Searchbar onSubmit={this.handlerSubmitUserQuery} />
+        {status === 'resolved' && (
+          <ImageGallery
+            userImages={images}
+            onClick={this.handleronClickImage}
+          />
+        )}
+        {status === 'resolved' && images.hits.length && (
+          <ButtonLoad onClick={this.handlerClickLoadMore} />
+        )}
+        {status === 'rejected' && <p>{error.massage}</p>}
+        {status === 'pending' && <Loader />}
+        {showModal && <Modal image={activeImge} onClose={this.toggleModal} />}
       </ArticleConteiner>
     );
   }
