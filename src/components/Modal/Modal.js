@@ -26,7 +26,7 @@ export default class Modal extends Component {
     return createPortal(
       <OverlayStyle onClick={this.handlerClickOnOverlay}>
         <ModalStyle>
-          <img src={this.props.image.largeImageURL} alt="" />
+          <img src={this.props.image} alt={this.props.tags} />
         </ModalStyle>
       </OverlayStyle>,
       modalRoot,
@@ -35,5 +35,5 @@ export default class Modal extends Component {
 }
 
 Modal.propTypes = {
-  image: PropTypes.object.isRequired,
+  image: PropTypes.string.isRequired,
 };

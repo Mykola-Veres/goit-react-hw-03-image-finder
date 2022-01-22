@@ -16,20 +16,25 @@ class App extends Component {
     query: '',
     error: '',
     status: 'idle',
-    activeImge: null,
+    activeImge: '',
+    tags: '',
     showModal: false,
   };
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
     if (prevState.query !== query) {
-      this.setState({ page: 1, status: 'pending' });
+      this.setState({ status: 'pending' });
       ImagesAPI.fetchImages(query, page)
-        .then(images => {
-          if (images.hits.length === 0) {
+        .then(({ hits }) => {
+          if (!query) {
+            this.setState({ status: 'idle' });
+            return this.notify();
+          }
+          if (hits.length === 0) {
             this.notify();
           }
-          this.setState({ images, status: 'resolved' });
+          this.setState({ images: hits, status: 'resolved' });
         })
         .catch(error => {
           this.setState({ error, status: 'rejected' });
@@ -37,14 +42,28 @@ class App extends Component {
     }
     if (prevState.page !== page && page > 1) {
       this.setState({ status: 'pending' });
-      ImagesAPI.fetchImages(query, page).then(images => {
-        this.setState({ images, status: 'resolved' });
+      ImagesAPI.fetchImages(query, page).then(({ hits }) => {
+        if (hits.length === 0) {
+          this.notify();
+        }
+        this.setState({ images: hits, status: 'resolved' });
+        this.scrollTo();
       });
     }
   }
 
+  scrollTo = () => {
+    const gallery = document.querySelector('.gallery');
+    const cardHeight = gallery.getBoundingClientRect().height;
+    window.scrollBy({
+      left: 0,
+      top: cardHeight * 2,
+      behavior: 'smooth',
+    });
+  };
+
   handlerSubmitUserQuery = query => {
-    this.setState({ query });
+    this.setState({ query: query.trim(), page: 1 });
   };
 
   handlerClickLoadMore = () => {
@@ -56,10 +75,8 @@ class App extends Component {
       `There are no matching images for this request: ${this.state.query} !`,
     );
 
-  handleronClickImage = id => {
-    this.setState({
-      activeImge: this.state.images.hits.find(image => id === image.id),
-    });
+  handleronClickImage = (activeImge, tags) => {
+    this.setState({ activeImge, tags });
     this.setState(({ showModal }) => ({ showModal: !showModal }));
   };
 
@@ -68,7 +85,7 @@ class App extends Component {
   };
 
   render() {
-    const { images, status, error, activeImge, showModal } = this.state;
+    const { images, status, error, activeImge, showModal, tags } = this.state;
 
     return (
       <ArticleConteiner>
@@ -80,12 +97,14 @@ class App extends Component {
             onClick={this.handleronClickImage}
           />
         )}
-        {status === 'resolved' && images.hits.length && (
+        {status === 'resolved' && images.length && (
           <ButtonLoad onClick={this.handlerClickLoadMore} />
         )}
         {status === 'rejected' && <p>{error.massage}</p>}
         {status === 'pending' && <Loader />}
-        {showModal && <Modal image={activeImge} onClose={this.toggleModal} />}
+        {showModal && (
+          <Modal image={activeImge} tags={tags} onClose={this.toggleModal} />
+        )}
       </ArticleConteiner>
     );
   }
