@@ -46,7 +46,10 @@ class App extends Component {
         if (hits.length === 0) {
           this.notify();
         }
-        this.setState({ images: hits, status: 'resolved' });
+        this.setState(({ images }) => ({
+          images: [...images, ...hits],
+          status: 'resolved',
+        }));
         this.scrollTo();
       });
     }
