@@ -24,7 +24,10 @@ class App extends Component {
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
     if (prevState.query !== query) {
-      this.setState({ status: 'pending' });
+      this.setState({ images: [], status: 'pending' });
+    }
+
+    if (prevState.query !== query || prevState.page !== page) {
       ImagesAPI.fetchImages(query, page)
         .then(({ hits }) => {
           if (!query) {
@@ -34,24 +37,17 @@ class App extends Component {
           if (hits.length === 0) {
             this.notify();
           }
-          this.setState({ images: hits, status: 'resolved' });
+          this.setState(({ images }) => ({
+            images: [...images, ...hits],
+            status: 'resolved',
+          }));
+          this.scrollTo();
+          return hits;
         })
+        .then(hits => this.scrollTo())
         .catch(error => {
           this.setState({ error, status: 'rejected' });
         });
-    }
-    if (prevState.page !== page && page > 1) {
-      this.setState({ status: 'pending' });
-      ImagesAPI.fetchImages(query, page).then(({ hits }) => {
-        if (hits.length === 0) {
-          this.notify();
-        }
-        this.setState(({ images }) => ({
-          images: [...images, ...hits],
-          status: 'resolved',
-        }));
-        this.scrollTo();
-      });
     }
   }
 
@@ -60,7 +56,7 @@ class App extends Component {
     const cardHeight = gallery.getBoundingClientRect().height;
     window.scrollBy({
       left: 0,
-      top: cardHeight * 2,
+      top: cardHeight * 4,
       behavior: 'smooth',
     });
   };
@@ -70,7 +66,7 @@ class App extends Component {
   };
 
   handlerClickLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+    this.setState(({ page }) => ({ page: page + 1 }));
   };
 
   notify = () =>
