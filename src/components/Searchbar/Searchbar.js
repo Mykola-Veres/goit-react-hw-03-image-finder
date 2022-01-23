@@ -23,6 +23,9 @@ class Searchbar extends Component {
 
   handelSubmitUserQuery = e => {
     e.preventDefault();
+    if (this.state.queryUser === '') {
+      return alert('Empty field');
+    }
     this.props.onSubmit(this.state.queryUser);
   };
 

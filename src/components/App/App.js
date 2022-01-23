@@ -19,15 +19,24 @@ class App extends Component {
     activeImge: '',
     tags: '',
     showModal: false,
+    visible: true,
   };
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
+    if (page > 1) {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
+
     if (prevState.query !== query) {
       this.setState({ images: [], status: 'pending' });
     }
 
     if (prevState.query !== query || prevState.page !== page) {
+      this.setState({ status: 'pending', visible: true });
       ImagesAPI.fetchImages(query, page)
         .then(({ hits }) => {
           if (!query) {
@@ -35,7 +44,8 @@ class App extends Component {
             return this.notify();
           }
           if (hits.length === 0) {
-            this.notify();
+            this.setState({ status: 'resolved', visible: false });
+            return this.notify();
           }
           this.setState(({ images }) => ({
             images: [...images, ...hits],
@@ -84,28 +94,59 @@ class App extends Component {
   };
 
   render() {
-    const { images, status, error, activeImge, showModal, tags } = this.state;
+    const { images, status, error, activeImge, showModal, tags, visible } =
+      this.state;
 
-    return (
-      <ArticleConteiner>
-        <ToastContainer position="top-center" autoClose={2000} />
-        <Searchbar onSubmit={this.handlerSubmitUserQuery} />
-        {status === 'resolved' && (
+    if (status === 'idle') {
+      return (
+        <ArticleConteiner>
+          <ToastContainer position="top-center" autoClose={2000} />
+          <Searchbar onSubmit={this.handlerSubmitUserQuery} />
+        </ArticleConteiner>
+      );
+    }
+
+    if (status === 'rejected') {
+      return (
+        <ArticleConteiner>
+          <Searchbar onSubmit={this.handlerSubmitUserQuery} />
+          <h2>{error.massage}</h2>
+        </ArticleConteiner>
+      );
+    }
+
+    if (status === 'pending') {
+      return (
+        <ArticleConteiner>
+          <ToastContainer position="top-center" autoClose={2000} />
+          <Searchbar onSubmit={this.handlerSubmitUserQuery} />
           <ImageGallery
             userImages={images}
             onClick={this.handleronClickImage}
           />
-        )}
-        {status === 'resolved' && images.length && (
-          <ButtonLoad onClick={this.handlerClickLoadMore} />
-        )}
-        {status === 'rejected' && <p>{error.massage}</p>}
-        {status === 'pending' && <Loader />}
-        {showModal && (
-          <Modal image={activeImge} tags={tags} onClose={this.toggleModal} />
-        )}
-      </ArticleConteiner>
-    );
+          <Loader />
+        </ArticleConteiner>
+      );
+    }
+
+    if (status === 'resolved') {
+      return (
+        <ArticleConteiner>
+          <ToastContainer position="top-center" autoClose={2000} />
+          <Searchbar onSubmit={this.handlerSubmitUserQuery} />
+          <ImageGallery
+            userImages={images}
+            onClick={this.handleronClickImage}
+          />
+          {images.length && visible && (
+            <ButtonLoad onClick={this.handlerClickLoadMore} />
+          )}
+          {showModal && (
+            <Modal image={activeImge} tags={tags} onClose={this.toggleModal} />
+          )}
+        </ArticleConteiner>
+      );
+    }
   }
 }
 export default App;
