@@ -4,15 +4,6 @@ import {
 } from './ImageGalleryItem.styled';
 import PropTypes from 'prop-types';
 
-// (function scrollTo (ImageGalleryItemStyle){
-//   const cardHeight = ImageGalleryItemStyle.firstElementChild.getBoundingClientRect().height
-//   window.scrollBy({
-//     left: 0,
-//     top: cardHeight * 4,
-//     behavior: 'smooth'
-//   })
-// })()
-
 const ImageGalleryItem = ({ webformatURL, tags, largeImageURL, onClick }) => (
   <ImageGalleryItemStyle
     onClick={() => {

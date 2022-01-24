@@ -27,6 +27,7 @@ class Searchbar extends Component {
       return alert('Empty field');
     }
     this.props.onSubmit(this.state.queryUser);
+    this.setState({ queryUser: '' });
   };
 
   render() {

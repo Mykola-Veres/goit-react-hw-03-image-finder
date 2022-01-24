@@ -24,18 +24,19 @@ class App extends Component {
 
   componentDidUpdate(prevProps, prevState) {
     const { query, page } = this.state;
-    if (page > 1) {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: 'smooth',
-      });
-    }
 
     if (prevState.query !== query) {
       this.setState({ images: [], status: 'pending' });
     }
 
     if (prevState.query !== query || prevState.page !== page) {
+      if (page > 1) {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+
       this.setState({ status: 'pending', visible: true });
       ImagesAPI.fetchImages(query, page)
         .then(({ hits }) => {
@@ -51,7 +52,9 @@ class App extends Component {
             images: [...images, ...hits],
             status: 'resolved',
           }));
-          this.scrollTo();
+          if (page > 1) {
+            this.scrollTo();
+          }
           return hits;
         })
         .then(hits => this.scrollTo())
